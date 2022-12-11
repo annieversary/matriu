@@ -11,7 +11,7 @@ smart-leds = "0.3"
 ws2812-timer-delay = "0.3"
 
 usb-device = { version = "0.2.3", features = ["control-buffer-256"] }
-usbd-midi = { git = "https://github.com/btrepp/usbd-midi" }
+usbd-midi = { git = "https://github.com/x37v/usbd-midi", branch = "xnor/midi-types-only" }
 cortex-m = "0.7.6"
 usbd-serial = "0.1.1"
 

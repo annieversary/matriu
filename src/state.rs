@@ -2,17 +2,36 @@ use trellis_m4 as bsp;
 
 use bsp::{hal::ehal::digital::v2::InputPin, Keypad};
 
+use crate::keys::*;
+
 pub struct State {
     pub keys: [KeyState; bsp::NEOPIXEL_COUNT],
+    pub mode: Mode,
+
+    pub brightness: u8,
+
+    pub scale: Scale,
+    pub root: Note,
+    pub octave: u8,
+    pub velocity: u8,
 }
 impl State {
     pub fn new() -> Self {
         Self {
             keys: [KeyState::Unpressed; bsp::NEOPIXEL_COUNT],
+            mode: Mode::Normal,
+
+            brightness: 30,
+
+            scale: Scale::Major,
+            root: Note::C,
+            octave: 3,
+            velocity: 70,
         }
     }
 
-    pub fn update(&mut self, keypad: &Keypad) {
+    /// Updates the KeyState of every key
+    pub fn update_keys(&mut self, keypad: &Keypad) {
         let keypad_inputs = keypad.decompose();
 
         for i in 0..bsp::NEOPIXEL_COUNT {
@@ -32,29 +51,73 @@ impl State {
         }
     }
 
-    pub fn key_pressed(&self, i: usize) -> bool {
-        self.keys[i].pressed()
+    pub fn key_pressed(&self, i: impl KeyIndex) -> bool {
+        self.keys[i.into_index()].pressed()
+    }
+
+    pub fn key_just_pressed(&self, i: impl KeyIndex) -> bool {
+        self.keys[i.into_index()] == KeyState::JustPressed
+    }
+
+    pub fn key_just_released(&self, i: impl KeyIndex) -> bool {
+        self.keys[i.into_index()] == KeyState::JustReleased
     }
 }
 
-#[derive(Default, Copy, Clone, PartialEq, Eq)]
-pub enum KeyState {
-    #[default]
-    Unpressed,
-    JustPressed,
-    Pressed,
-    JustReleased,
+pub enum Mode {
+    Normal,
+    SelectKey,
 }
 
-impl KeyState {
-    fn pressed(self) -> bool {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Note {
+    C,
+    Cs,
+    D,
+    Ds,
+    E,
+    F,
+    Fs,
+    G,
+    Gs,
+    A,
+    As,
+    B,
+}
+
+impl Note {
+    pub const fn sharp(self) -> bool {
         match self {
-            KeyState::Unpressed | KeyState::JustReleased => false,
-            KeyState::JustPressed | KeyState::Pressed => true,
+            Note::C => false,
+            Note::Cs => true,
+            Note::D => false,
+            Note::Ds => true,
+            Note::E => false,
+            Note::F => false,
+            Note::Fs => true,
+            Note::G => false,
+            Note::Gs => true,
+            Note::A => false,
+            Note::As => true,
+            Note::B => false,
         }
     }
+}
 
-    fn unpressed(self) -> bool {
-        !self.pressed()
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Scale {
+    Major,
+}
+
+impl Scale {
+    // `i` is from 0 to 7
+    pub const fn get(self, i: u8) -> u8 {
+        assert!(i <= 7);
+        self.notes()[i as usize]
+    }
+    pub const fn notes(self) -> [u8; 7] {
+        match self {
+            Scale::Major => [0, 2, 4, 5, 7, 9, 11],
+        }
     }
 }

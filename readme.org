@@ -18,3 +18,21 @@ $ cargo hf2 --release
 and it should be ready!
 ** design
 this is work in progress ^^
+*** normal mode
+first column is for config
+
+holding the first key switches to key select mode
+holding the second key switches to scale select mode
+the other two keys are for switching to other (not currently designed) config modes
+
+the rest of the columns are for playing the notes of the scale
+each row is an octave
+*** key select mode
+in key select mode, columns 5-7 are used to select a note, from C to B
+columns 1-4 are used to display the selected note
+*** scale select mode
+shows buttons to select major, minor, dorian, phrigian, etc
+in order
+*** config mode
+smth to select the center octave
+*** a mode to play chords?

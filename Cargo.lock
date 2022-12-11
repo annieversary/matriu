@@ -147,6 +147,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "midi-convert"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6466a54ef710faeaf2f0f7dfee9056b84761d7882e6905384f7dfab692a5e8de"
+dependencies = [
+ "midi-types",
+]
+
+[[package]]
+name = "midi-types"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab818d9bd1595d5355949cd79529b2a92f4adb40c884f718328c48db46641805"
+
+[[package]]
 name = "modular-bitfield"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -367,9 +382,11 @@ checksum = "1f6cc3adc849b5292b4075fc0d5fdcf2f24866e88e336dd27a8943090a520508"
 [[package]]
 name = "usbd-midi"
 version = "0.2.0"
-source = "git+https://github.com/btrepp/usbd-midi#34e355ab239e1f88bb7bbb52230e9cd716ddf9bc"
+source = "git+https://github.com/x37v/usbd-midi?branch=xnor/midi-types-only#712804fe54377aaff94659e856e561112361200f"
 dependencies = [
  "embedded-hal",
+ "midi-convert",
+ "midi-types",
  "nb 1.0.0",
  "num_enum",
  "usb-device",

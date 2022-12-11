@@ -12,16 +12,15 @@ use bsp::{
 use cortex_m::peripheral::NVIC;
 
 use usb_device::prelude::*;
-use usbd_midi::data::usb::constants::USB_CLASS_NONE;
 use usbd_midi::{
-    data::{
-        byte::{from_traits::FromClamped, u7::U7},
-        midi::{channel::Channel, message::Message, notes::Note},
-        usb_midi::{
-            midi_packet_reader::MidiPacketBufferReader, usb_midi_event_packet::UsbMidiEventPacket,
-        },
+    data::usb_midi::{
+        midi_packet_reader::MidiPacketBufferReader, usb_midi_event_packet::UsbMidiEventPacket,
     },
     midi_device::MidiClass,
+};
+use usbd_midi::{
+    data::{usb::constants::USB_CLASS_NONE, usb_midi::cable_number::CableNumber},
+    midi_types::{Channel, MidiMessage, Note, Value7},
 };
 
 static mut USB_ALLOCATOR: Option<UsbBusAllocator<UsbBus>> = None;
@@ -31,10 +30,14 @@ static mut USB_MIDI: Option<MidiClass<UsbBus>> = None;
 // TODO support note off
 // make an enum or smth
 // or maybe just wait until usbd-midi updates and uses the new stuff
-pub fn send_midi(note: Note, vel: u8) {
+pub fn send_midi(note: Note, vel: u8, on: bool) {
     let msg = UsbMidiEventPacket {
-        cable_number: usbd_midi::data::usb_midi::cable_number::CableNumber::Cable0,
-        message: Message::NoteOn(Channel::Channel1, note, U7::from_clamped(vel)),
+        cable_number: CableNumber::Cable0,
+        message: if on {
+            MidiMessage::NoteOn(Channel::new(1), note, Value7::new(vel))
+        } else {
+            MidiMessage::NoteOff(Channel::new(1), note, Value7::new(vel))
+        },
     };
     unsafe {
         let _ = USB_MIDI.as_mut().unwrap().send_message(msg);
