@@ -19,11 +19,14 @@ use smart_leds::{
 use usb::send_midi;
 
 use board::{Board, Neopixel};
-use state::{Mode, Note, Scale, State};
+use music_theory::{Note, Scale};
+use state::{Mode, State};
 use usbd_midi::midi_types;
 
 mod board;
 mod keys;
+mod letters;
+mod music_theory;
 mod state;
 mod usb;
 
@@ -77,7 +80,7 @@ fn run(state: &mut State) {
                     }
                 };
             }
-            use crate::state::Note::*;
+            use Note::*;
             select_note!(C, (5, 0));
             select_note!(Cs, (6, 0));
             select_note!(D, (7, 0));
@@ -152,7 +155,7 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
             color_note!(As, (6, 3));
             color_note!(B, (7, 3));
 
-            let letter = letter(state.root);
+            let letter = letters::letter(state.root);
             for i in 0..4 {
                 for j in 0..4 {
                     colors[1 + i + j * 8] = match letter[i + j * 4] {
@@ -187,82 +190,4 @@ fn hue(hue: u8) -> RGB8 {
         sat: 255,
         val: 255,
     })
-}
-
-// TODO this should go somewhere else
-fn letter(note: Note) -> [u8; 16] {
-    match note {
-        state::Note::C => [
-            0, 1, 1, 1, //
-            1, 0, 0, 0, //
-            1, 0, 0, 0, //
-            0, 1, 1, 1, //
-        ],
-        state::Note::Cs => [
-            0, 1, 1, 1, //
-            1, 0, 0, 2, //
-            1, 0, 0, 0, //
-            0, 1, 1, 1, //
-        ],
-        state::Note::D => [
-            1, 1, 1, 0, //
-            1, 0, 0, 1, //
-            1, 0, 0, 1, //
-            1, 1, 1, 0, //
-        ],
-        state::Note::Ds => [
-            1, 1, 1, 2, //
-            1, 0, 0, 1, //
-            1, 0, 0, 1, //
-            1, 1, 1, 0, //
-        ],
-        state::Note::E => [
-            1, 1, 0, 0, //
-            1, 0, 0, 1, //
-            1, 1, 1, 0, //
-            1, 1, 1, 1, //
-        ],
-        state::Note::F => [
-            1, 1, 1, 1, //
-            1, 0, 0, 0, //
-            1, 1, 1, 0, //
-            1, 0, 0, 0, //
-        ],
-        state::Note::Fs => [
-            1, 1, 1, 1, //
-            1, 0, 0, 2, //
-            1, 1, 1, 0, //
-            1, 0, 0, 0, //
-        ],
-        state::Note::G => [
-            0, 1, 1, 1, //
-            1, 0, 0, 0, //
-            1, 0, 1, 1, //
-            0, 1, 0, 1, //
-        ],
-        state::Note::Gs => [
-            0, 1, 1, 1, //
-            1, 0, 0, 2, //
-            1, 0, 1, 1, //
-            0, 1, 0, 1, //
-        ],
-        state::Note::A => [
-            0, 1, 1, 0, //
-            1, 0, 0, 1, //
-            1, 1, 1, 1, //
-            1, 0, 0, 1, //
-        ],
-        state::Note::As => [
-            0, 1, 1, 2, //
-            1, 0, 0, 1, //
-            1, 1, 1, 1, //
-            1, 0, 0, 1, //
-        ],
-        state::Note::B => [
-            1, 1, 1, 0, //
-            1, 0, 1, 0, //
-            1, 1, 0, 1, //
-            1, 1, 1, 0, //
-        ],
-    }
 }
