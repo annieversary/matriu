@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-trellis_m4 = { path = "../atsamd/boards/trellis_m4", features = ["keypad-unproven"] }
+# trellis_m4 = { path = "../atsamd/boards/trellis_m4", features = ["keypad-unproven", "usb"] }
+trellis_m4 = { git = "https://github.com/annieversary/atsamd", branch = "trellis_m4_usb", features = ["keypad-unproven", "usb"] }
 panic-halt = "0.2"
 panic-semihosting = "0.5"
 smart-leds = "0.3"
