@@ -19,7 +19,7 @@ use smart_leds::{
 use usb::send_midi;
 
 use board::{Board, Neopixel};
-use state::{Mode, Note, State};
+use state::{Mode, Note, Scale, State};
 use usbd_midi::midi_types;
 
 mod board;
@@ -46,10 +46,10 @@ fn run(state: &mut State) {
         // TODO make something for easy keymaps
         Mode::Normal => {
             if state.key_pressed((0, 0)) {
-                state.mode = Mode::SelectKey;
+                state.mode = Mode::SelectRoot;
             }
             if state.key_pressed((0, 1)) {
-                // state.mode = Mode::SelectScale;
+                state.mode = Mode::SelectScale;
             }
 
             for col in 1..8 {
@@ -65,7 +65,7 @@ fn run(state: &mut State) {
                 }
             }
         }
-        Mode::SelectKey => {
+        Mode::SelectRoot => {
             if !state.key_pressed((0, 0)) {
                 state.mode = Mode::Normal;
             }
@@ -91,6 +91,17 @@ fn run(state: &mut State) {
             select_note!(As, (6, 3));
             select_note!(B, (7, 3));
         }
+        Mode::SelectScale => {
+            if !state.key_pressed((0, 1)) {
+                state.mode = Mode::Normal;
+            }
+
+            for i in 0..7 {
+                if state.key_pressed((i + 1, 0)) {
+                    state.scale = Scale::from(i);
+                }
+            }
+        }
     }
 }
 
@@ -112,7 +123,7 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
                 }
             }
         }
-        Mode::SelectKey => {
+        Mode::SelectRoot => {
             colors[0] = colors::BLUE;
 
             macro_rules! color_note {
@@ -126,7 +137,7 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
                     };
                 };
             }
-            use crate::state::Note::*;
+            use Note::*;
 
             color_note!(C, (5, 0));
             color_note!(Cs, (6, 0));
@@ -152,6 +163,17 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
                 }
             }
         }
+        Mode::SelectScale => {
+            colors[8] = colors::BLUE;
+
+            for i in 0..7 {
+                colors[i + 1] = if state.scale as usize == i {
+                    colors::RED
+                } else {
+                    colors::LIME_GREEN
+                };
+            }
+        }
     }
 
     neopixel
@@ -168,7 +190,7 @@ fn hue(hue: u8) -> RGB8 {
 }
 
 // TODO this should go somewhere else
-fn letter(note: state::Note) -> [u8; 16] {
+fn letter(note: Note) -> [u8; 16] {
     match note {
         state::Note::C => [
             0, 1, 1, 1, //

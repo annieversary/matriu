@@ -27,9 +27,6 @@ static mut USB_ALLOCATOR: Option<UsbBusAllocator<UsbBus>> = None;
 static mut USB_DEV: Option<UsbDevice<UsbBus>> = None;
 static mut USB_MIDI: Option<MidiClass<UsbBus>> = None;
 
-// TODO support note off
-// make an enum or smth
-// or maybe just wait until usbd-midi updates and uses the new stuff
 pub fn send_midi(note: Note, vel: u8, on: bool) {
     let msg = UsbMidiEventPacket {
         cable_number: CableNumber::Cable0,
@@ -103,7 +100,7 @@ fn poll_usb() {
         if let Ok(size) = midi.read(&mut buffer) {
             let buffer_reader = MidiPacketBufferReader::new(&buffer, size);
             for _packet in buffer_reader.into_iter().flatten() {
-                // TODO do something here
+                // TODO do something here?
             }
         }
     };
