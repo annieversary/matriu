@@ -1,0 +1,20 @@
+* matriu
+this is the code for the =matriu= midi controller
+
+it runs on an [[https://learn.adafruit.com/adafruit-neotrellis-m4/overview][Arduino NeoTrellis M4]]. it's currently a work in progress
+
+** setup
+install =cargo-hf2= if you haven't already:
+#+begin_src bash
+$ cargo install cargo-hf2
+#+end_src
+
+then connect the device in bootloader mode (by hitting the reset button twice), then run:
+
+#+begin_src bash
+$ cargo hf2 --release
+#+end_src
+
+and it should be ready!
+** design
+this is work in progress ^^
