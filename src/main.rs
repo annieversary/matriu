@@ -16,12 +16,9 @@ use smart_leds::{
     hsv::{hsv2rgb, Hsv, RGB8},
     SmartLedsWrite,
 };
-use usb::send_midi;
 
-use board::{Board, Neopixel};
 use music_theory::{Note, Scale};
-use state::{Mode, State};
-use usbd_midi::midi_types;
+use state::{Mode, State, MAX_OCTAVE};
 
 mod board;
 mod keys;
@@ -32,47 +29,59 @@ mod usb;
 
 #[entry]
 fn main() -> ! {
-    let mut board = Board::new();
     let mut state = State::new();
 
     loop {
-        board.delay.delay_ms(5u8);
-        state.update_keys(&board.keypad);
+        state.board.delay.delay_ms(5u8);
+        state.update_keys();
 
         run(&mut state);
-        update_colors(&state, &mut board.neopixel);
+        update_colors(&mut state);
     }
 }
 
 fn run(state: &mut State) {
+    // TODO double tap sustain key to release all sustained notes
+
     match state.mode {
-        // TODO make something for easy keymaps
-        Mode::Normal => {
+        Mode::Normal(notes_mode) => {
             if state.key_pressed((0, 0)) {
-                state.mode = Mode::SelectRoot;
+                state.set_mode(Mode::SelectRoot);
             }
             if state.key_pressed((0, 1)) {
-                state.mode = Mode::SelectScale;
+                state.set_mode(Mode::Config);
+            }
+            if state.key_just_pressed((0, 2)) {
+                state.set_mode(Mode::Normal(notes_mode.next()));
             }
 
-            for col in 1..8 {
-                for row in 0..4 {
-                    let note = midi_types::Note::new(
-                        (state.octave + row) * 12 + state.scale.get(col - 1) + state.root as u8,
-                    );
-                    if state.key_just_pressed((col, row)) {
-                        send_midi(note, state.velocity, true);
-                    } else if state.key_just_released((col, row)) {
-                        send_midi(note, state.velocity, false);
+            state.update_sustain();
+
+            match notes_mode {
+                state::NotesMode::Notes => {
+                    for col in 1..8 {
+                        for row in 0..4 {
+                            let note = (state.octave + row) * 12
+                                + state.scale.get(col - 1)
+                                + state.root as u8;
+                            if state.key_just_pressed((col, row)) {
+                                state.send_midi(note, true);
+                            } else if state.key_just_released((col, row)) {
+                                state.send_midi(note, false);
+                            }
+                        }
                     }
                 }
+                state::NotesMode::Chords => {}
+                state::NotesMode::ChordsExtra => {}
             }
         }
         Mode::SelectRoot => {
             if !state.key_pressed((0, 0)) {
-                state.mode = Mode::Normal;
+                state.set_prev_mode();
             }
 
+            // TODO make pressing a note also send a midi
             macro_rules! select_note {
                 ($note:expr, $pos:expr) => {
                     if state.key_pressed($pos) {
@@ -94,9 +103,9 @@ fn run(state: &mut State) {
             select_note!(As, (6, 3));
             select_note!(B, (7, 3));
         }
-        Mode::SelectScale => {
+        Mode::Config => {
             if !state.key_pressed((0, 1)) {
-                state.mode = Mode::Normal;
+                state.set_prev_mode();
             }
 
             for i in 0..7 {
@@ -104,25 +113,71 @@ fn run(state: &mut State) {
                     state.scale = Scale::from(i);
                 }
             }
+
+            if state.key_just_pressed((0, 3)) {
+                state.note_off_all();
+            }
+
+            if state.key_just_pressed((6, 3)) {
+                state.brightness = state.brightness.saturating_sub(5).max(5);
+            }
+            if state.key_just_pressed((7, 3)) {
+                state.brightness = state.brightness.saturating_add(5);
+            }
+            if state.key_just_pressed((6, 2)) {
+                state.octave = state.octave.saturating_sub(1);
+            }
+            if state.key_just_pressed((7, 2)) {
+                // TODO not sure what the maximum number should be here
+                state.octave = state.octave.saturating_add(1).min(MAX_OCTAVE);
+            }
+
+            // TODO velocity
         }
     }
 }
 
-fn update_colors(state: &State, neopixel: &mut Neopixel) {
+fn update_colors(state: &mut State) {
     let mut colors = [colors::BLACK; bsp::NEOPIXEL_COUNT];
 
     match state.mode {
-        Mode::Normal => {
-            for row in 0..4 {
-                colors[(0, row).into_index()] = colors::BLUE;
-            }
-            for col in 1..8 {
-                for row in 0..4 {
-                    colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
-                        hue(0)
-                    } else {
-                        colors::BLACK
-                    };
+        Mode::Normal(notes_mode) => {
+            colors[0] = colors::BLUE;
+            colors[8] = colors::BLUE;
+
+            colors[24] = if state.sustain {
+                colors::BLUE
+            } else {
+                colors::CYAN
+            };
+
+            match notes_mode {
+                state::NotesMode::Notes => {
+                    for col in 1..8 {
+                        for row in 0..4 {
+                            colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
+                                colors::RED
+                            } else {
+                                colors::BLACK
+                            };
+                        }
+                    }
+                }
+                state::NotesMode::Chords => {
+                    colors[16] = colors::LIME_GREEN;
+
+                    for col in 1..8 {
+                        for row in 0..4 {
+                            colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
+                                hue(row * 64)
+                            } else {
+                                colors::BLACK
+                            };
+                        }
+                    }
+                }
+                state::NotesMode::ChordsExtra => {
+                    colors[16] = colors::GREEN;
                 }
             }
         }
@@ -166,7 +221,7 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
                 }
             }
         }
-        Mode::SelectScale => {
+        Mode::Config => {
             colors[8] = colors::BLUE;
 
             for i in 0..7 {
@@ -176,10 +231,21 @@ fn update_colors(state: &State, neopixel: &mut Neopixel) {
                     colors::LIME_GREEN
                 };
             }
+
+            colors[24] = colors::YELLOW;
+
+            colors[6 + 2 * 8] =
+                hue(((state.octave as f32 / (1 + MAX_OCTAVE) as f32) * 255.0) as u8);
+            colors[7 + 2 * 8] =
+                hue((((1 + state.octave) as f32 / (1 + MAX_OCTAVE) as f32) * 255.0) as u8);
+            colors[6 + 3 * 8] = colors::CYAN;
+            colors[7 + 3 * 8] = colors::BLUE;
         }
     }
 
-    neopixel
+    state
+        .board
+        .neopixel
         .write(brightness(colors.into_iter(), state.brightness))
         .unwrap();
 }
