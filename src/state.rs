@@ -155,7 +155,7 @@ impl State {
 #[derive(Copy, Clone)]
 pub enum Mode {
     Normal(NotesMode),
-    SelectRoot,
+    SelectRoot { hold: bool },
     Config,
 }
 

@@ -21,18 +21,36 @@ this is work in progress ^^
 *** normal mode
 first column is for config
 
-holding the first key switches to key select mode
-holding the second key switches to scale select mode
-the other two keys are for switching to other (not currently designed) config modes
+holding the first key switches to root select mode
+holding the second key switches to config mode
+pressing the third key cycles through submodes
+pressing the fourth key toggles sustain
 
-the rest of the columns are for playing the notes of the scale
-each row is an octave
-*** key select mode
+there's three submodes
+**** notes
+columns 2-8 play the different notes of the currently selected scale
+each row is one octave
+**** chords
+columns 2-8 play chords from the scale, from the first degree to the seventh
+the first row plays them normally
+second row plays the first inversion
+third row plays the second inversion
+**** chords extra
+plays 7ths, add9, 11ths, etc
+*** select root mode
 in key select mode, columns 5-7 are used to select a note, from C to B
-columns 1-4 are used to display the selected note
-*** scale select mode
-shows buttons to select major, minor, dorian, phrigian, etc
-in order
+sharp notes are highlighted with a different color
+
+columns 1-4 are used to display the selected note, using a small 4x4 font
+sharps are marked with a red dot on the right side
+
+pressing the second button on the first column will lock key select on, so you can stop holding the top left button
+when in lock mode, pressing either the first or second buttons will go back to normal mode
 *** config mode
-smth to select the center octave
-*** a mode to play chords?
+the first row selects the scale, in order: Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian
+
+buttons 7 and 8 on second row are =-5= and =+5= to velocity
+buttons 7 and 8 on third row are =-1= and =+1= to octave
+buttons 7 and 8 on fourth row are =-1= and =+1= to brightness
+
+button 1 on the first row will send note off for all notes. you can use this if there's any hanging notes
