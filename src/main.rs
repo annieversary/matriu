@@ -123,7 +123,16 @@ fn run(state: &mut State) {
                     bass!(0, 15);
                 }
                 Keyboard::Waffletone => {
-                    // TODO waffletone keyboard
+                    for col in 0..7 {
+                        for row in 0..4 {
+                            let note = state.octave * 12 + state.root as u8 - row + col * 3;
+                            if state.key_just_pressed((col + 1, row)) {
+                                state.send_midi(note, true);
+                            } else if state.key_just_released((col + 1, row)) {
+                                state.send_midi(note, false);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -246,8 +255,10 @@ fn update_colors(state: &mut State) {
                     colors[25] = colors::RED;
                 }
                 Keyboard::Waffletone => {
-                    // TODO highlight the root
-                    colors[25] = colors::RED;
+                    colors[1] = colors::RED;
+                    colors[5] = colors::RED;
+                    colors[26] = colors::RED;
+                    colors[30] = colors::RED;
                 }
             }
         }
