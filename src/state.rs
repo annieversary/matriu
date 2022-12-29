@@ -17,8 +17,9 @@ pub struct State {
     pub board: Board,
 
     pub keys: [KeyState; bsp::NEOPIXEL_COUNT],
+
     pub mode: Mode,
-    pub previous_mode: Option<Mode>,
+    pub keyboard: Keyboard,
 
     pub brightness: u8,
 
@@ -38,8 +39,9 @@ impl State {
             board: Board::new(),
 
             keys: [KeyState::Unpressed; bsp::NEOPIXEL_COUNT],
-            mode: Mode::Normal(NotesMode::Notes),
-            previous_mode: None,
+
+            mode: Mode::Normal,
+            keyboard: Keyboard::Scale,
 
             brightness: 30,
 
@@ -88,7 +90,6 @@ impl State {
     }
 
     pub fn set_mode(&mut self, mode: Mode) {
-        self.previous_mode = Some(self.mode);
         self.mode = mode;
 
         for i in 0..127u8 {
@@ -96,11 +97,6 @@ impl State {
                 self.send_midi(i, false);
             }
         }
-    }
-
-    pub fn set_prev_mode(&mut self) {
-        self.mode = self.previous_mode.unwrap_or(Mode::Normal(NotesMode::Notes));
-        self.previous_mode = None;
     }
 
     pub fn send_midi(&mut self, midi_num: u8, on: bool) {
@@ -157,24 +153,16 @@ impl State {
 
 #[derive(Copy, Clone)]
 pub enum Mode {
-    Normal(NotesMode),
+    Normal,
     SelectRoot { hold: bool },
     Config,
 }
 
-#[derive(Copy, Clone)]
-pub enum NotesMode {
-    Notes,
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Keyboard {
+    Scale,
     Chords,
     ChordsExtra,
-}
-
-impl NotesMode {
-    pub fn next(self) -> Self {
-        match self {
-            Self::Notes => Self::Chords,
-            Self::Chords => Self::ChordsExtra,
-            Self::ChordsExtra => Self::Notes,
-        }
-    }
+    Bass,
+    Waffletone,
 }

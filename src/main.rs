@@ -18,7 +18,9 @@ use smart_leds::{
 };
 
 use music_theory::{Note, Scale};
-use state::{Mode, State, MAX_OCTAVE};
+use state::{Keyboard, Mode, State, MAX_OCTAVE};
+
+use crate::music_theory::Chord;
 
 mod board;
 mod keys;
@@ -42,21 +44,18 @@ fn main() -> ! {
 
 fn run(state: &mut State) {
     match state.mode {
-        Mode::Normal(notes_mode) => {
+        Mode::Normal => {
             if state.key_pressed((0, 0)) {
                 state.set_mode(Mode::SelectRoot { hold: false });
             }
             if state.key_pressed((0, 1)) {
                 state.set_mode(Mode::Config);
             }
-            if state.key_just_pressed((0, 2)) {
-                state.set_mode(Mode::Normal(notes_mode.next()));
-            }
 
             state.update_sustain();
 
-            match notes_mode {
-                state::NotesMode::Notes => {
+            match state.keyboard {
+                Keyboard::Scale => {
                     for col in 1..8 {
                         for row in 0..4 {
                             let note = (state.octave + row) * 12
@@ -70,38 +69,61 @@ fn run(state: &mut State) {
                         }
                     }
                 }
-                state::NotesMode::Chords => {
+                Keyboard::Chords => {
+                    // TODO change this, shoudln't eb inversions
+                    // do major, minor, dim, power chord?
+
                     for col in 1..8 {
                         macro_rules! chords {
-                            ($row:expr, $fun:ident) => {
+                            ($row:expr, $chord:path) => {
                                 if state.key_just_pressed((col, $row)) {
                                     let root = (state.octave) * 12
                                         + state.scale.get(col - 1)
                                         + state.root as u8;
-                                    let chord = state.scale.chords()[(col - 1) as usize];
 
-                                    for note in chord.$fun() {
+                                    for note in $chord.notes() {
                                         state.send_midi(note + root, true);
                                     }
                                 } else if state.key_just_released((col, $row)) {
                                     let root = (state.octave) * 12
                                         + state.scale.get(col - 1)
                                         + state.root as u8;
-                                    let chord = state.scale.chords()[(col - 1) as usize];
 
-                                    for note in chord.$fun() {
+                                    for note in $chord.notes() {
                                         state.send_midi(note + root, false);
                                     }
                                 }
                             };
                         }
-                        chords!(0, notes);
-                        chords!(1, first_inv);
-                        chords!(2, second_inv);
+                        chords!(0, Chord::Major);
+                        chords!(1, Chord::Minor);
+                        chords!(2, Chord::Diminished);
                     }
                 }
-                state::NotesMode::ChordsExtra => {
-                    // TODO
+                Keyboard::ChordsExtra => {
+                    // TODO maj7, min7, others
+                }
+                Keyboard::Bass => {
+                    macro_rules! bass {
+                        ($row:expr, $offset:expr) => {
+                            for col in 0..7 {
+                                let note = state.octave * 12 + state.root as u8 + $offset + col;
+                                if state.key_just_pressed((col + 1, $row)) {
+                                    state.send_midi(note, true);
+                                } else if state.key_just_released((col + 1, $row)) {
+                                    state.send_midi(note, false);
+                                }
+                            }
+                        };
+                    }
+
+                    bass!(3, 0);
+                    bass!(2, 5);
+                    bass!(1, 10);
+                    bass!(0, 15);
+                }
+                Keyboard::Waffletone => {
+                    // TODO waffletone keyboard
                 }
             }
         }
@@ -112,10 +134,10 @@ fn run(state: &mut State) {
 
             if hold {
                 if state.key_just_pressed((0, 0)) || state.key_just_pressed((0, 1)) {
-                    state.set_prev_mode();
+                    state.set_mode(Mode::Normal);
                 }
             } else if !state.key_pressed((0, 0)) {
-                state.set_prev_mode();
+                state.set_mode(Mode::Normal);
             }
 
             macro_rules! select_note {
@@ -144,7 +166,7 @@ fn run(state: &mut State) {
         }
         Mode::Config => {
             if !state.key_pressed((0, 1)) {
-                state.set_prev_mode();
+                state.set_mode(Mode::Normal);
             }
 
             for i in 0..7 {
@@ -176,6 +198,19 @@ fn run(state: &mut State) {
             if state.key_just_pressed((7, 3)) {
                 state.brightness = state.brightness.saturating_add(5);
             }
+
+            macro_rules! keyboard {
+                ($i:expr, $k:expr) => {
+                    if state.key_just_pressed(($i, 3)) {
+                        state.keyboard = $k;
+                    }
+                };
+            }
+            keyboard!(1, Keyboard::Scale);
+            keyboard!(2, Keyboard::Chords);
+            keyboard!(3, Keyboard::ChordsExtra);
+            keyboard!(4, Keyboard::Bass);
+            keyboard!(5, Keyboard::Waffletone);
         }
     }
 }
@@ -184,7 +219,7 @@ fn update_colors(state: &mut State) {
     let mut colors = [colors::BLACK; bsp::NEOPIXEL_COUNT];
 
     match state.mode {
-        Mode::Normal(notes_mode) => {
+        Mode::Normal => {
             colors[0] = colors::BLUE;
             colors[8] = colors::BLUE;
 
@@ -194,23 +229,25 @@ fn update_colors(state: &mut State) {
                 colors::CYAN
             };
 
-            for col in 1..8 {
-                for row in 0..4 {
-                    colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
-                        hue(row * 64)
-                    } else {
-                        colors::BLACK
-                    };
+            match state.keyboard {
+                Keyboard::Scale | Keyboard::Chords | Keyboard::ChordsExtra => {
+                    for col in 1..8 {
+                        for row in 0..4 {
+                            colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
+                                hue(row * 64)
+                            } else {
+                                colors::BLACK
+                            };
+                        }
+                    }
                 }
-            }
-
-            match notes_mode {
-                state::NotesMode::Notes => {}
-                state::NotesMode::Chords => {
-                    colors[16] = colors::LIME_GREEN;
+                Keyboard::Bass => {
+                    colors[11] = colors::RED;
+                    colors[25] = colors::RED;
                 }
-                state::NotesMode::ChordsExtra => {
-                    colors[16] = colors::GREEN;
+                Keyboard::Waffletone => {
+                    // TODO highlight the root
+                    colors[25] = colors::RED;
                 }
             }
         }
@@ -276,6 +313,19 @@ fn update_colors(state: &mut State) {
                 hue((((1 + state.octave) as f32 / (1 + MAX_OCTAVE) as f32) * 255.0) as u8);
             colors[6 + 3 * 8] = colors::CYAN;
             colors[7 + 3 * 8] = colors::BLUE;
+
+            macro_rules! keyboard {
+                ($i:expr, $k:expr) => {
+                    if state.keyboard == $k {
+                        colors[$i + 3 * 8] = colors::RED;
+                    }
+                };
+            }
+            keyboard!(1, Keyboard::Scale);
+            keyboard!(2, Keyboard::Chords);
+            keyboard!(3, Keyboard::ChordsExtra);
+            keyboard!(4, Keyboard::Bass);
+            keyboard!(5, Keyboard::Waffletone);
         }
     }
 
