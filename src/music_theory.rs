@@ -94,14 +94,17 @@ pub enum Chord {
     Major,
     Minor,
     Diminished,
+    Power,
+    // Maj7,
 }
 
 impl Chord {
-    pub const fn notes(self) -> [u8; 3] {
+    pub const fn notes(self) -> &'static [u8] {
         match self {
-            Chord::Major => [0, 4, 7],
-            Chord::Minor => [0, 3, 7],
-            Chord::Diminished => [0, 3, 6],
+            Chord::Major => &[0, 4, 7],
+            Chord::Minor => &[0, 3, 7],
+            Chord::Diminished => &[0, 3, 6],
+            Chord::Power => &[0, 7],
         }
     }
 

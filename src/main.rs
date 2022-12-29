@@ -69,10 +69,7 @@ fn run(state: &mut State) {
                         }
                     }
                 }
-                Keyboard::Chords => {
-                    // TODO change this, shoudln't eb inversions
-                    // do major, minor, dim, power chord?
-
+                Keyboard::Chords | Keyboard::ChordsExtra => {
                     for col in 1..8 {
                         macro_rules! chords {
                             ($row:expr, $chord:path) => {
@@ -95,13 +92,15 @@ fn run(state: &mut State) {
                                 }
                             };
                         }
-                        chords!(0, Chord::Major);
-                        chords!(1, Chord::Minor);
-                        chords!(2, Chord::Diminished);
+                        if state.keyboard == Keyboard::Chords {
+                            chords!(0, Chord::Major);
+                            chords!(1, Chord::Minor);
+                            chords!(2, Chord::Diminished);
+                            chords!(3, Chord::Power);
+                        } else if state.keyboard == Keyboard::ChordsExtra {
+                            // TODO maj7, min7, others
+                        }
                     }
-                }
-                Keyboard::ChordsExtra => {
-                    // TODO maj7, min7, others
                 }
                 Keyboard::Bass => {
                     macro_rules! bass {
@@ -227,10 +226,21 @@ fn run(state: &mut State) {
 fn update_colors(state: &mut State) {
     let mut colors = [colors::BLACK; bsp::NEOPIXEL_COUNT];
 
+    macro_rules! color {
+        ($($color:path => [ $($n:expr),* ] ),*) => {
+            $(
+                $(
+                    colors[$n] = $color;
+                )*
+            )*
+        };
+    }
+
     match state.mode {
         Mode::Normal => {
-            colors[0] = colors::BLUE;
-            colors[8] = colors::BLUE;
+            color! {
+                colors::BLUE => [0, 8]
+            }
 
             colors[24] = if state.sustain {
                 colors::BLUE
@@ -251,14 +261,39 @@ fn update_colors(state: &mut State) {
                     }
                 }
                 Keyboard::Bass => {
-                    colors[11] = colors::RED;
-                    colors[25] = colors::RED;
+                    let notes = state.scale.notes();
+                    macro_rules! bass {
+                        ($row:expr, $offset:expr) => {
+                            for n in 0..7 {
+                                let v = (n + $offset) % 12;
+                                if notes.contains(&v) {
+                                    colors[($row * 8 + n + 1) as usize] = colors::YELLOW;
+                                }
+                            }
+                        };
+                    }
+                    bass!(3, 0);
+                    bass!(2, 5);
+                    bass!(1, 10);
+                    bass!(0, 15);
+
+                    color!(
+                        colors::RED => [11, 25]
+                    );
                 }
                 Keyboard::Waffletone => {
-                    colors[1] = colors::RED;
-                    colors[5] = colors::RED;
-                    colors[26] = colors::RED;
-                    colors[30] = colors::RED;
+                    let notes = state.scale.notes();
+                    for col in 0..7 {
+                        for row in 0..4 {
+                            let v = ((12 - row) + col * 3) % 12;
+                            if notes.contains(&v) {
+                                colors[(row * 8 + col + 1) as usize] = colors::YELLOW;
+                            }
+                        }
+                    }
+                    color!(
+                        colors::RED => [1, 5, 26, 30]
+                    );
                 }
             }
         }
