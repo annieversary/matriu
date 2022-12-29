@@ -70,8 +70,39 @@ fn run(state: &mut State) {
                         }
                     }
                 }
-                state::NotesMode::Chords => {}
-                state::NotesMode::ChordsExtra => {}
+                state::NotesMode::Chords => {
+                    for col in 1..8 {
+                        macro_rules! chords {
+                            ($row:expr, $fun:ident) => {
+                                if state.key_just_pressed((col, $row)) {
+                                    let root = (state.octave) * 12
+                                        + state.scale.get(col - 1)
+                                        + state.root as u8;
+                                    let chord = state.scale.chords()[(col - 1) as usize];
+
+                                    for note in chord.$fun() {
+                                        state.send_midi(note + root, true);
+                                    }
+                                } else if state.key_just_released((col, $row)) {
+                                    let root = (state.octave) * 12
+                                        + state.scale.get(col - 1)
+                                        + state.root as u8;
+                                    let chord = state.scale.chords()[(col - 1) as usize];
+
+                                    for note in chord.$fun() {
+                                        state.send_midi(note + root, false);
+                                    }
+                                }
+                            };
+                        }
+                        chords!(0, notes);
+                        chords!(1, first_inv);
+                        chords!(2, second_inv);
+                    }
+                }
+                state::NotesMode::ChordsExtra => {
+                    // TODO
+                }
             }
         }
         Mode::SelectRoot { hold } => {
@@ -163,30 +194,20 @@ fn update_colors(state: &mut State) {
                 colors::CYAN
             };
 
-            match notes_mode {
-                state::NotesMode::Notes => {
-                    for col in 1..8 {
-                        for row in 0..4 {
-                            colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
-                                colors::RED
-                            } else {
-                                colors::BLACK
-                            };
-                        }
-                    }
+            for col in 1..8 {
+                for row in 0..4 {
+                    colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
+                        hue(row * 64)
+                    } else {
+                        colors::BLACK
+                    };
                 }
+            }
+
+            match notes_mode {
+                state::NotesMode::Notes => {}
                 state::NotesMode::Chords => {
                     colors[16] = colors::LIME_GREEN;
-
-                    for col in 1..8 {
-                        for row in 0..4 {
-                            colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
-                                hue(row * 64)
-                            } else {
-                                colors::BLACK
-                            };
-                        }
-                    }
                 }
                 state::NotesMode::ChordsExtra => {
                     colors[16] = colors::GREEN;

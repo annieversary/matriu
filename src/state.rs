@@ -111,6 +111,9 @@ impl State {
             return;
         }
 
+        // TODO make sustain pedal only sustian the chords that are played while it's held
+        // this way we can sustain some notes and not others
+
         if on {
             self.active_notes[midi_num as usize] = true;
             if self.sustain {

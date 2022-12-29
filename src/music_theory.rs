@@ -61,6 +61,19 @@ impl Scale {
             Scale::Locrian => [0, 1, 3, 5, 6, 8, 10],
         }
     }
+    pub fn chords(self) -> [Chord; 7] {
+        let mut chords = [
+            Chord::Major,
+            Chord::Minor,
+            Chord::Minor,
+            Chord::Major,
+            Chord::Major,
+            Chord::Minor,
+            Chord::Diminished,
+        ];
+        chords.rotate_left(self as usize);
+        chords
+    }
     pub const fn from(i: u8) -> Self {
         match i {
             0 => Self::Ionian,
@@ -71,6 +84,39 @@ impl Scale {
             5 => Self::Aeolian,
             6 => Self::Locrian,
             _ => panic!("number is not in 0..7"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Chord {
+    Major,
+    Minor,
+    Diminished,
+}
+
+impl Chord {
+    pub const fn notes(self) -> [u8; 3] {
+        match self {
+            Chord::Major => [0, 4, 7],
+            Chord::Minor => [0, 3, 7],
+            Chord::Diminished => [0, 3, 6],
+        }
+    }
+
+    pub const fn first_inv(self) -> [u8; 3] {
+        match self {
+            Chord::Major => [4, 7, 12],
+            Chord::Minor => [3, 7, 12],
+            Chord::Diminished => [3, 6, 12],
+        }
+    }
+
+    pub const fn second_inv(self) -> [u8; 3] {
+        match self {
+            Chord::Major => [7, 12, 16],
+            Chord::Minor => [7, 12, 15],
+            Chord::Diminished => [6, 12, 15],
         }
     }
 }
