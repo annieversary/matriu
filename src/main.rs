@@ -69,7 +69,7 @@ fn run(state: &mut State) {
                         }
                     }
                 }
-                Keyboard::Chords | Keyboard::ChordsExtra => {
+                Keyboard::Chords => {
                     for col in 1..8 {
                         macro_rules! chords {
                             ($row:expr, $chord:path) => {
@@ -97,8 +97,19 @@ fn run(state: &mut State) {
                             chords!(1, Chord::Minor);
                             chords!(2, Chord::Diminished);
                             chords!(3, Chord::Power);
-                        } else if state.keyboard == Keyboard::ChordsExtra {
-                            // TODO maj7, min7, others
+                        }
+                    }
+                }
+                Keyboard::Sampler => {
+                    for col in 0..7 {
+                        for row in 0..4 {
+                            let note =
+                                state.octave * 12 + state.root as u8 + (3 - row) + (6 - col) * 4;
+                            if state.key_just_pressed((col + 1, row)) {
+                                state.send_midi(note, true);
+                            } else if state.key_just_released((col + 1, row)) {
+                                state.send_midi(note, false);
+                            }
                         }
                     }
                 }
@@ -216,7 +227,7 @@ fn run(state: &mut State) {
             }
             keyboard!(1, Keyboard::Scale);
             keyboard!(2, Keyboard::Chords);
-            keyboard!(3, Keyboard::ChordsExtra);
+            keyboard!(3, Keyboard::Sampler);
             keyboard!(4, Keyboard::Bass);
             keyboard!(5, Keyboard::Waffletone);
         }
@@ -249,7 +260,7 @@ fn update_colors(state: &mut State) {
             };
 
             match state.keyboard {
-                Keyboard::Scale | Keyboard::Chords | Keyboard::ChordsExtra => {
+                Keyboard::Scale | Keyboard::Chords | Keyboard::Sampler => {
                     for col in 1..8 {
                         for row in 0..4 {
                             colors[(col, row).into_index()] = if state.key_pressed((col, row)) {
@@ -369,7 +380,7 @@ fn update_colors(state: &mut State) {
             }
             keyboard!(1, Keyboard::Scale);
             keyboard!(2, Keyboard::Chords);
-            keyboard!(3, Keyboard::ChordsExtra);
+            keyboard!(3, Keyboard::Sampler);
             keyboard!(4, Keyboard::Bass);
             keyboard!(5, Keyboard::Waffletone);
         }

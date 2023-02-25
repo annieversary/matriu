@@ -162,7 +162,7 @@ pub enum Mode {
 pub enum Keyboard {
     Scale,
     Chords,
-    ChordsExtra,
+    Sampler,
     Bass,
     Waffletone,
 }
